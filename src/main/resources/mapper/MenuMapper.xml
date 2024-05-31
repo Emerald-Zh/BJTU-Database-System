@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.manage.project.mapper.MenuMapper">
+
+    <resultMap id="BaseResultMap" type="com.manage.project.model.domain.Menu">
+        <id property="menuId" column="menu_id" jdbcType="INTEGER"/>
+        <result property="menuName" column="menu_name" jdbcType="VARCHAR"/>
+        <result property="menuPrice" column="menu_price" jdbcType="DECIMAL"/>
+        <result property="menuClass" column="menu_class" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        menu_id
+        ,menu_name,menu_price,
+        menu_class
+    </sql>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from menu
+        where menu_id = #{menuId,jdbcType=INTEGER}
+    </select>
+
+    <select id="selectAllMenus"  resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from menu
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        delete
+        from menu
+        where menu_id = #{menuId,jdbcType=INTEGER}
+    </delete>
+    <insert id="insert" keyColumn="menu_id" keyProperty="menuId" parameterType="com.manage.project.model.domain.Menu"
+            useGeneratedKeys="true">
+        insert into menu
+        ( menu_id, menu_name, menu_price
+        , menu_class)
+        values ( #{menuId,jdbcType=INTEGER}, #{menuName,jdbcType=VARCHAR}, #{menuPrice,jdbcType=DECIMAL}
+               , #{menuClass,jdbcType=VARCHAR})
+    </insert>
+    <insert id="insertSelective" keyColumn="menu_id" keyProperty="menuId"
+            parameterType="com.manage.project.model.domain.Menu" useGeneratedKeys="true">
+        insert into menu
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="menuId != null">menu_id,</if>
+            <if test="menuName != null">menu_name,</if>
+            <if test="menuPrice != null">menu_price,</if>
+            <if test="menuClass != null">menu_class,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="menuId != null">#{menuId,jdbcType=INTEGER},</if>
+            <if test="menuName != null">#{menuName,jdbcType=VARCHAR},</if>
+            <if test="menuPrice != null">#{menuPrice,jdbcType=DECIMAL},</if>
+            <if test="menuClass != null">#{menuClass,jdbcType=VARCHAR},</if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.manage.project.model.domain.Menu">
+        update menu
+        <set>
+            <if test="menuName != null">
+                menu_name = #{menuName,jdbcType=VARCHAR},
+            </if>
+            <if test="menuPrice != null">
+                menu_price = #{menuPrice,jdbcType=DECIMAL},
+            </if>
+            <if test="menuClass != null">
+                menu_class = #{menuClass,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where menu_id = #{menuId,jdbcType=INTEGER}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.manage.project.model.domain.Menu">
+        update menu
+        set menu_name  = #{menuName,jdbcType=VARCHAR},
+            menu_price = #{menuPrice,jdbcType=DECIMAL},
+            menu_class = #{menuClass,jdbcType=VARCHAR}
+        where menu_id = #{menuId,jdbcType=INTEGER}
+    </update>
+</mapper>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>开发喵云盘</title>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.1/lib/theme-chalk/index.css">
+    <style>
+        /* 页面 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div style="padding-left: 30px">
+        <h3>员工管理</h3>
+        <el-button type="primary" @click="addWorker()">添加员工</el-button>
+        <el-table :data="workerListData" style="width: 100%">-->
+            <el-table-column prop="workerId" label="id" width="100px"></el-table-column>
+            <el-table-column prop="workerName" label="姓名" width="100px"></el-table-column>
+            <el-table-column prop="workerSex" label="性别" width="100px"></el-table-column>
+            <el-table-column prop="workerAge" label="年龄" width="100px"></el-table-column>
+            <el-table-column label="操作" width="300px">
+                <template slot-scope="scope">
+                    <el-button type="primary" @click="updateWorker(scope.row)">
+                        编辑
+                    </el-button>
+                    <el-popconfirm
+                            confirm-button-text='确定'
+                            cancel-button-text='取消'
+                            icon="el-icon-info"
+                            icon-color="red"
+                            title="确定删除吗？"
+                            @confirm="deleteWorkerById(scope.row.workerId)"
+                    >
+                        <el-button slot="reference" type="danger" plain>删除</el-button>
+                    </el-popconfirm>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <el-dialog :title="dialogTitleWorker" :visible.sync="dialogVisibleWorker" width="40%">
+            <el-form ref="formWorker" :model="formWorker" :rules='rules' label-width="80px">
+                <el-form-item label="名字" prop="type">
+                    <el-form-item label="" prop="type">
+                        <el-input v-model="formWorker.name"></el-input>
+                    </el-form-item>
+                </el-form-item>
+                <el-form-item label="性别" prop="type">
+                    <el-form-item label="" prop="type">
+                        <el-input v-model="formWorker.sex"></el-input>
+                    </el-form-item>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="年龄" prop="type">
+                    <el-form-item label="" prop="type">
+                        <el-input v-model="formWorker.age"></el-input>
+                    </el-form-item>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer"></span>
+            <span slot="footer" class="dialog-footer">
+                <el-button v-if="dialogTitleWorker === '添加员工'" type="primary"
+                           @click="handleAddWorker('formWorker')">提 交</el-button>
+                <el-button v-else type="primary"
+                           @click="handleModifySite('formWorker')">修 改</el-button></span>
+        </el-dialog>
+    </div>
+</div>
+
+</body>
+<!-- import Vue before Element -->
+<script src="../js/vue.js"></script>
+<!-- import JavaScript -->
+<script src="../js/index.js"></script>
+<script src="../js/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tab: 'first',
+                userListData: [],
+                dialogVisibleWorker: false,
+                dialogTitleWorker: '添加员工',
+                editableWorker: true,
+                formWorker: {
+                    id: '',
+                    name: '',
+                    sex: '',
+                    age: '',
+                },
+                menuListData: [],
+                workerListData: [],
+                orderListData: [],
+                currentPage: 1,
+                pagesize: 5,
+                circleUrl: '',
+                username: '',
+                personCard: {
+                    username: '',
+                    nickname: '',
+                    avatar: ''
+                }
+            }
+        },
+        methods: {
+            logout() {
+                this.$alert('退出登录？', '', {
+                    confirmButtonText: '确定',
+                }).then(_ => {
+                    location.href = "http://localhost:8080/logout"
+                });
+            },
+            getCurrentUser() {
+                axios.get('http://localhost:8080/getCurrentUser')
+                    .then(response => {
+                        this.personCard.username = response.data.data.username;
+                        this.personCard.nickname = response.data.data.nickName;
+                        this.personCard.avatar = response.data.data.avatar;
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            addWorker() {
+                this.dialogVisibleWorker = true
+                this.editableWorker = false
+                this.dialogTitleWorker = '添加员工'
+            },
+            updateWorker(row) {
+                this.dialogVisibleWorker = true
+                this.editableWorker = false
+                this.dialogTitleWorker = '修改员工';
+                this.formWorker.id = row.workerId;
+                this.formWorker.name = row.workerName;
+                this.formWorker.sex = row.workerSex;
+                this.formWorker.age = row.workerAge;
+
+            },
+            handleAddWorker(formWorker) {
+                axios.post('http://localhost:8080/insertWorker?name='
+                    + this.formWorker.name +
+                    '&sex=' + this.formWorker.sex +
+                    '&age=' + this.formWorker.age)
+                    .then(response => {
+                            this.dialogVisibleWorker = false
+                            const code = response.data.code;
+                            if (code === 0) {
+                                this.$message({
+                                    message: response.data.msg,
+                                    type: 'success'
+                                });
+                                setTimeout(() => {
+                                    location.href = "http://localhost:8080/workerManage.html";
+                                }, 300)
+                            } else {
+
+                                this.$message({
+                                    message: response.data.msg,
+                                    type: 'error'
+                                });
+                            }
+                        }
+                    )
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            handleModifySite(formWorker) {
+                axios.post('http://localhost:8080/updateWorker?id='+this.formWorker.id
+                    +'&name=' + this.formWorker.name +
+                    '&sex=' + this.formWorker.sex +
+                    '&age=' + this.formWorker.age)
+                    .then(response => {
+                            this.dialogVisibleWorker = false
+                            const code = response.data.code;
+                            if (code === 0) {
+                                this.$message({
+                                    message: response.data.msg,
+                                    type: 'success'
+                                });
+                                setTimeout(() => {
+                                    location.href = "http://localhost:8080/workerManage.html";
+                                }, 300)
+                            } else {
+
+                                this.$message({
+                                    message: response.data.msg,
+                                    type: 'error'
+                                });
+                            }
+                        }
+                    )
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+
+            getUserList() {
+                axios.post('http://localhost:8080/getUserList')
+                    .then(response => {
+                        this.userListData = response.data.data;
+                        console.log(this.userListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            deleteWorkerById(id) {
+                console.log(id)
+                axios.post('http://localhost:8080/deleteWorker?workerId=' + id)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/workerManage.html";
+                            }, 300)
+                        } else {
+
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除员工时出错：', error);
+                    });
+            },
+            getMenuList() {
+                axios.post('http://localhost:8080/getAllMenus')
+                    .then(response => {
+                        this.menuListData = response.data.data;
+                        console.log(this.menuListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getOrderList() {
+                axios.post('http://localhost:8080/getAllOrders')
+                    .then(response => {
+                        this.orderListData = response.data.data;
+                        console.log(this.orderListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getWorkerList() {
+                axios.post('http://localhost:8080/getWorkerList')
+                    .then(response => {
+                        this.workerListData = response.data.data;
+                        console.log(this.workerListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+        },
+        created() {
+            this.getCurrentUser();
+            this.getUserList();
+            this.getMenuList();
+            this.getOrderList();
+            this.getWorkerList();
+        },
+        // mounted() {
+        //     // 每隔一段时间轮询数据，检查表中是否有修改
+        //     this.countTimeSign = setInterval(() => {
+        //         this.getUserList();
+        //     }, 3000);// 每一秒轮询一次
+        // },
+        beforeDestroy() {
+            // 在页面卸载时清除 setInterval
+            clearInterval(this.countTimeSign);
+        }
+    })
+</script>
+</html>

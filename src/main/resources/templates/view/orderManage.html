@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>开发喵云盘</title>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.1/lib/theme-chalk/index.css">
+    <style>
+        /* 页面 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div style="padding-left: 30px">
+        <h3>点餐管理</h3>
+        <el-button type="primary" @click="addOrder()">添加点餐</el-button>
+        <el-table :data="orderListData" style="width: 100%">
+            <el-table-column prop="ordersId" label="id" width="100px"></el-table-column>
+            <el-table-column prop="ordersTime" label="时间" width="200px"></el-table-column>
+            <el-table-column prop="ordersPrice" label="价格" width="100px"></el-table-column>
+            <el-table-column prop="menuName" label="菜名" width="100px"></el-table-column>
+            <el-table-column prop="username" label="用户" width="100px"></el-table-column>
+            <el-table-column label="操作" width="300px">
+                <template slot-scope="scope">
+                    <el-button type="primary" @click="updateOrder(scope.row)">
+                        编辑
+                    </el-button>
+                    <el-popconfirm
+                            confirm-button-text='确定'
+                            cancel-button-text='取消'
+                            icon="el-icon-info"
+                            icon-color="red"
+                            title="确定删除吗？"
+                            @confirm="deleteOrderById(scope.row.ordersId)"
+                    >
+                        <el-button slot="reference" type="danger" plain>删除</el-button>
+                    </el-popconfirm>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <el-dialog :title="dialogTitleOrder" :visible.sync="dialogVisibleOrder" width="40%">
+            <el-form ref="formOrder" :model="formOrder" :rules='rules' label-width="80px">
+                <el-form-item label="用户" prop="username">
+                    <el-select v-model="formOrder.userId" filterable placeholder="请选择用户" :disabled="editInput">
+                        <el-option
+                                v-for="item in userListData"
+                                :key="item.userId"
+                                :label="item.nickName"
+                                :value="item.userId">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="菜品" prop="menuName">
+                    <el-select v-model="formOrder.menuId" filterable placeholder="请选择菜品" :disabled="editInput">
+                        <el-option
+                                v-for="item in menuListData"
+                                :key="item.menuId"
+                                :label="item.menuName"
+                                :value="item.menuId">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer"></span>
+            <span slot="footer" class="dialog-footer">
+                <el-button v-if="dialogTitleOrder === '添加点餐'" type="primary"
+                           @click="handleAddOrder('formOrder')">提 交</el-button>
+                <el-button v-else type="primary"
+                           @click="handleModifySite('formOrder')">修 改</el-button></span>
+        </el-dialog>
+    </div>
+</div>
+
+</body>
+<!-- import Vue before Element -->
+<script src="../js/vue.js"></script>
+<!-- import JavaScript -->
+<script src="../js/index.js"></script>
+<script src="../js/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tab: 'first',
+                userListData: [],
+                dialogVisibleOrder: false,
+                dialogTitleOrder: '添加点餐',
+                editableOrder: true,
+                formOrder: {
+                    id: '',
+                    userId: '',
+                    menuId: '',
+                },
+                menuListData: [],
+                workerListData: [],
+                orderListData: [],
+                currentPage: 1,
+                pagesize: 5,
+                circleUrl: '',
+                username: '',
+                personCard: {
+                    username: '',
+                    nickname: '',
+                    avatar: ''
+                }
+            }
+        },
+        methods: {
+            logout() {
+                this.$alert('退出登录？', '', {
+                    confirmButtonText: '确定',
+                }).then(_ => {
+                    location.href = "http://localhost:8080/logout"
+                });
+            },
+            getCurrentUser() {
+                axios.get('http://localhost:8080/getCurrentUser')
+                    .then(response => {
+                        this.personCard.username = response.data.data.username;
+                        this.personCard.nickname = response.data.data.nickName;
+                        this.personCard.avatar = response.data.data.avatar;
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            addOrder() {
+                this.dialogVisibleOrder = true
+                this.editableOrder = false
+                this.dialogTitleOrder = '添加点餐'
+            },
+            updateOrder(row) {
+                this.dialogVisibleOrder = true
+                this.editableOrder = false
+                this.dialogTitleOrder = '修改点餐'
+                this.formOrder.id = row.ordersId;
+                this.formOrder.userId = row.userId;
+                this.formOrder.menuId = row.menuId;
+            },
+            handleAddOrder(formOrder) {
+                axios.post('http://localhost:8080/insertOrder?userId=' +
+                    this.formOrder.userId +
+                    '&menuId=' + this.formOrder.menuId)
+                    .then(response => {
+                        this.dialogVisibleOrder = false;
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/orderManage.html";
+                            }, 300)
+                        } else {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        this.dialogVisibleOrder = false;
+                        console.error('添加点餐数据时出错：', error);
+                    });
+            },
+
+            handleModifySite(formOrder) {
+                axios.post('http://localhost:8080/updateOrder?ordersId='+this.formOrder.id +
+                    '&userId=' + this.formOrder.userId +
+                    '&menuId=' + this.formOrder.menuId)
+                    .then(response => {
+                        this.dialogVisibleOrder = false;
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/orderManage.html";
+                            }, 300)
+                        } else {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        this.dialogVisibleOrder = false;
+                        console.error('修改点餐数据时出错：', error);
+                    });
+            },
+            getUserList() {
+                axios.post('http://localhost:8080/getUserList')
+                    .then(response => {
+                        this.userListData = response.data.data;
+                        console.log(this.userListData);
+                    })
+                    .catch(error => {
+                        console.error('获取用户数据时出错：', error);
+                    });
+            },
+            deleteOrderById(id) {
+                axios.post('http://localhost:8080/deleteOrder?ordersId=' + id)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/orderManage.html";
+                            }, 300)
+                        } else {
+
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除用户时出错：', error);
+                    });
+            },
+            getMenuList() {
+                axios.post('http://localhost:8080/getAllMenus')
+                    .then(response => {
+                        this.menuListData = response.data.data;
+                        console.log(this.menuListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getOrderList() {
+                axios.post('http://localhost:8080/getAllOrders')
+                    .then(response => {
+                        this.orderListData = response.data.data;
+                        console.log(this.orderListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+        },
+        created() {
+            this.getCurrentUser();
+            this.getUserList();
+            this.getMenuList();
+            this.getOrderList();
+            this.getWorkerList();
+        },
+        // mounted() {
+        //     // 每隔一段时间轮询数据，检查表中是否有修改
+        //     this.countTimeSign = setInterval(() => {
+        //         this.getUserList();
+        //     }, 3000);// 每一秒轮询一次
+        // },
+        beforeDestroy() {
+            // 在页面卸载时清除 setInterval
+            clearInterval(this.countTimeSign);
+        }
+    })
+</script>
+</html>

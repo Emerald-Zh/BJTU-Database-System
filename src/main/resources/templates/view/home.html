@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>开发喵云盘</title>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.1/lib/theme-chalk/index.css">
+    <style>
+        /* 页面 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 15%;
+            background-color: #545c64;
+            font-size: 20px;
+            padding: 20px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ccc;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar li {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .sidebar li a {
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+
+        .sidebar li a:hover{
+            color: #ffd04b;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: left;
+        }
+
+        .user-info-name {
+            font-size: 24px;
+        }
+
+        .user-info-cont {
+            padding-left: 30px;
+        }
+
+        .user-info-cont p {
+            font-size: 12px;
+            color: grey;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div style="height: 50px">
+        <div style="float: left;padding-left: 30px;">
+            <h2>数据库管理系统</h2>
+        </div>
+        <div style="float: right; margin-top: 15px;margin-right: 30px">
+            <el-button round @click="logout">退出登录</el-button>
+
+        </div>
+    </div>
+    <el-divider></el-divider>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="userManage.html" target="content">用户管理</a></li>
+                <li><a href="menuManage.html" target="content">菜单管理</a></li>
+                <li><a href="orderManage.html" target="content">点餐管理</a></li>
+                <li><a href="workerManage.html" target="content">员工管理</a></li>
+            </ul>
+        </div>
+        <div class="content">
+            <iframe class="iframe-container" name="content" src="userManage.html" frameborder="0"></iframe>
+        </div>
+    </div>
+</div>
+
+</body>
+<!-- import Vue before Element -->
+<script src="../js/vue.js"></script>
+<!-- import JavaScript -->
+<script src="../js/index.js"></script>
+<script src="../js/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tab: 'first',
+                userListData: [],
+                dialogVisibleUser: false,
+                dialogTitleUser: '写处方',
+                editableUser: true,
+                formUser: {
+                    username: '',
+                    password: '',
+                    nickName: '',
+                    avatar: ''
+                },
+                menuListData: [],
+                workerListData: [],
+                orderListData: [],
+                currentPage: 1,
+                pagesize: 5,
+                circleUrl: '',
+                username: '',
+                personCard: {
+                    username: '',
+                    nickname: '',
+                    avatar: ''
+                }
+            }
+        },
+        methods: {
+            logout() {
+                this.$alert('退出登录？', '', {
+                    confirmButtonText: '确定',
+                }).then(_ => {
+                    location.href = "http://localhost:8080/logout"
+                });
+            },
+            getCurrentUser() {
+                axios.get('http://localhost:8080/getCurrentUser')
+                    .then(response => {
+                        this.personCard.username = response.data.data.username;
+                        this.personCard.nickname = response.data.data.nickName;
+                        this.personCard.avatar = response.data.data.avatar;
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            addUser() {
+                this.dialogVisibleUser = true
+                this.editableUser = false
+                this.dialogTitleUser = '添加用户'
+            },
+            handleAddUser(formUser) {
+                axios.post('http://localhost:8080/addUser?username='
+                    + this.formUser.username +
+                    '&password=' + this.formUser.password +
+                    '&nickName=' + this.formUser.nickName +
+                    '&avatar=' + this.formUser.avatar)
+                    .then(response => {
+                        this.userListData = response.data.data;
+                        console.log(this.userListData);
+                        this.dialogVisibleUser = false
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getUserList() {
+                axios.post('http://localhost:8080/getUserList')
+                    .then(response => {
+                        this.userListData = response.data.data;
+                        console.log(this.userListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            deleteUserById(id) {
+                axios.post('http://localhost:8080/deleteUser?userId=' + id)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/home";
+                            }, 300)
+                        } else {
+
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                            setTimeout(() => {
+                                // 登录失败
+                                location.href = "http://localhost:8080/login"
+                            }, 300)
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除用户时出错：', error);
+                    });
+            },
+            getMenuList() {
+                axios.post('http://localhost:8080/getAllMenus')
+                    .then(response => {
+                        this.menuListData = response.data.data;
+                        console.log(this.menuListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getOrderList() {
+                axios.post('http://localhost:8080/getAllOrders')
+                    .then(response => {
+                        this.orderListData = response.data.data;
+                        console.log(this.orderListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getWorkerList() {
+                axios.post('http://localhost:8080/getWorkerList')
+                    .then(response => {
+                        this.workerListData = response.data.data;
+                        console.log(this.workerListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+        },
+        created() {
+            this.getCurrentUser();
+            this.getUserList();
+            this.getMenuList();
+            this.getOrderList();
+            this.getWorkerList();
+        },
+        // mounted() {
+        //     // 每隔一段时间轮询数据，检查表中是否有修改
+        //     this.countTimeSign = setInterval(() => {
+        //         this.getUserList();
+        //     }, 3000);// 每一秒轮询一次
+        // },
+        beforeDestroy() {
+            // 在页面卸载时清除 setInterval
+            clearInterval(this.countTimeSign);
+        }
+    })
+</script>
+</html>

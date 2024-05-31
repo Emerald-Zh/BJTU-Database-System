@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>开发喵云盘</title>
+
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.1/lib/theme-chalk/index.css">
+    <style>
+        /* 页面 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div style="padding-left: 30px">
+        <h3>菜单管理</h3>
+        <el-button type="primary" @click="addMenu()">添加菜品</el-button>
+        <el-table :data="menuListData" style="width: 100%">-->
+            <el-table-column prop="menuId" label="id" width="100px"></el-table-column>
+            <el-table-column prop="menuName" label="菜名" width="100px"></el-table-column>
+            <el-table-column prop="menuPrice" label="价格" width="100px"></el-table-column>
+            <el-table-column prop="menuClass" label="类型" width="100px"></el-table-column>
+            <el-table-column label="操作" width="300px">
+                <template slot-scope="scope">
+                    <el-button type="primary" @click="updateMenu(scope.row)">
+                        编辑
+                    </el-button>
+                    <el-popconfirm
+                            confirm-button-text='确定'
+                            cancel-button-text='取消'
+                            icon="el-icon-info"
+                            icon-color="red"
+                            title="确定删除吗？"
+                            @confirm="deleteMenuById(scope.row.menuId)"
+                    >
+                        <el-button slot="reference" type="danger" plain>删除</el-button>
+                    </el-popconfirm>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <el-dialog :title="dialogTitleMenu" :visible.sync="dialogVisibleMenu" width="40%">
+            <el-form ref="formMenu" :model="formMenu" :rules='rules' label-width="80px">
+                <el-form-item label="名称" prop="type">
+                    <el-form-item label="" prop="type">
+                        <el-input v-model="formMenu.name"></el-input>
+                    </el-form-item>
+                </el-form-item>
+                <el-form-item label="价格" prop="price">
+                    <el-form-item label="" prop="price">
+                        <el-input v-model="formMenu.price"></el-input>
+                    </el-form-item>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="类型" prop="type">
+                    <el-form-item label="" prop="type">
+                        <el-input v-model="formMenu.d_type"></el-input>
+                    </el-form-item>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer"></span>
+            <span slot="footer" class="dialog-footer">
+                <el-button v-if="dialogTitleMenu === '添加菜品'" type="primary"
+                           @click="handleAddMenu('formMenu')">提 交</el-button>
+                <el-button v-else type="primary"
+                           @click="handleModifySite('formMenu')">修 改</el-button></span>
+        </el-dialog>
+    </div>
+</div>
+
+</body>
+<!-- import Vue before Element -->
+<script src="../js/vue.js"></script>
+<!-- import JavaScript -->
+<script src="../js/index.js"></script>
+<script src="../js/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tab: 'first',
+                userListData: [],
+                dialogVisibleMenu: false,
+                dialogTitleMenu: '添加菜品',
+                editableMenu: true,
+                formMenu: {
+                    id: '',
+                    name: '',
+                    price: '',
+                    d_type: '',
+                },
+                menuListData: [],
+                workerListData: [],
+                orderListData: [],
+                currentPage: 1,
+                pagesize: 5,
+                circleUrl: '',
+                username: '',
+                personCard: {
+                    username: '',
+                    nickname: '',
+                    avatar: ''
+                }
+            }
+        },
+        methods: {
+            logout() {
+                this.$alert('退出登录？', '', {
+                    confirmButtonText: '确定',
+                }).then(_ => {
+                    location.href = "http://localhost:8080/logout"
+                });
+            },
+            getCurrentUser() {
+                axios.get('http://localhost:8080/getCurrentUser')
+                    .then(response => {
+                        this.personCard.username = response.data.data.username;
+                        this.personCard.nickname = response.data.data.nickName;
+                        this.personCard.avatar = response.data.data.avatar;
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            addMenu() {
+                this.dialogVisibleMenu = true
+                this.editableMenu = false
+                this.dialogTitleMenu = '添加菜品'
+            },
+            updateMenu(row) {
+                this.dialogVisibleMenu = true
+                this.editableMenu = false
+                this.dialogTitleMenu = '修改菜品'
+                this.formMenu.menuId = row.menuId;
+                this.formMenu.id = row.menuId;
+                this.formMenu.name = row.menuName;
+                this.formMenu.price = row.menuPrice;
+                this.formMenu.d_type = row.menuClass;
+            },
+            handleAddMenu(formMenu) {
+                axios.post('http://localhost:8080/insertMenu?name='
+                    + this.formMenu.name +
+                    '&price=' + this.formMenu.price +
+                    '&type=' + this.formMenu.d_type)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/menuManage.html";
+                            }, 300)
+                        } else {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    }
+                );
+            },
+            handleModifySite(formMenu) {
+                axios.post('http://localhost:8080/updateMenu?id='+this.formMenu.id +
+                    '&name='  + this.formMenu.name +
+                    '&price=' + this.formMenu.price +
+                    '&type=' + this.formMenu.d_type)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/menuManage.html";
+                            }, 300)
+                        } else {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                            console.error('获取日志数据时出错：', error);
+                        }
+                    );
+            },
+
+            getUserList() {
+                axios.post('http://localhost:8080/getUserList')
+                    .then(response => {
+                        this.userListData = response.data.data;
+                        console.log(this.userListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            deleteMenuById(id) {
+                axios.post('http://localhost:8080/deleteMenu?menuId=' + id)
+                    .then(response => {
+                        const code = response.data.code;
+                        if (code === 0) {
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'success'
+                            });
+                            setTimeout(() => {
+                                location.href = "http://localhost:8080/menuManage.html";
+                            }, 300)
+                        } else {
+
+                            this.$message({
+                                message: response.data.msg,
+                                type: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除菜品时出错：', error);
+                    });
+            },
+            getMenuList() {
+                axios.post('http://localhost:8080/getAllMenus')
+                    .then(response => {
+                        this.menuListData = response.data.data;
+                        console.log(this.menuListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getOrderList() {
+                axios.post('http://localhost:8080/getAllOrders')
+                    .then(response => {
+                        this.orderListData = response.data.data;
+                        console.log(this.orderListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+            getWorkerList() {
+                axios.post('http://localhost:8080/getWorkerList')
+                    .then(response => {
+                        this.workerListData = response.data.data;
+                        console.log(this.workerListData);
+                    })
+                    .catch(error => {
+                        console.error('获取日志数据时出错：', error);
+                    });
+            },
+        },
+        created() {
+            this.getCurrentUser();
+            this.getUserList();
+            this.getMenuList();
+            this.getOrderList();
+            this.getWorkerList();
+        },
+        // mounted() {
+        //     // 每隔一段时间轮询数据，检查表中是否有修改
+        //     this.countTimeSign = setInterval(() => {
+        //         this.getUserList();
+        //     }, 3000);// 每一秒轮询一次
+        // },
+        beforeDestroy() {
+            // 在页面卸载时清除 setInterval
+            clearInterval(this.countTimeSign);
+        }
+    })
+</script>
+</html>
